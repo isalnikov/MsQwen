@@ -1,2 +1,2 @@
-# Mrs Qwen
+# Ms Qwen
 Это Госпожа Qwen Ai
