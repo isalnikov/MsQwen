@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="003" author="msqwen">
+        <comment>Создание таблицы каналов (channels)</comment>
+        
+        <createTable tableName="channels">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="prompt_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="telegram_handle" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="telegram_url" type="VARCHAR(500)"/>
+            <column name="description" type="TEXT"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_parsed_at" type="TIMESTAMP"/>
+        </createTable>
+        
+        <!-- Foreign Key на prompt_id с CASCADE DELETE -->
+        <addForeignKeyConstraint
+                baseTableName="channels"
+                baseColumnNames="prompt_id"
+                constraintName="fk_channels_prompt_id"
+                referencedTableName="prompts"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+        
+        <!-- Foreign Key на user_id -->
+        <addForeignKeyConstraint
+                baseTableName="channels"
+                baseColumnNames="user_id"
+                constraintName="fk_channels_user_id"
+                referencedTableName="users"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+    </changeSet>
+
+</databaseChangeLog>

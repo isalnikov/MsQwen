@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="006" author="msqwen">
+        <comment>Создание индексов для оптимизации запросов</comment>
+        
+        <!-- Индексы для таблицы users -->
+        <createIndex tableName="users" indexName="idx_users_telegram_id">
+            <column name="telegram_id"/>
+        </createIndex>
+        <createIndex tableName="users" indexName="idx_users_is_active">
+            <column name="is_active"/>
+        </createIndex>
+        
+        <!-- Индексы для таблицы prompts -->
+        <createIndex tableName="prompts" indexName="idx_prompts_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="prompts" indexName="idx_prompts_is_active">
+            <column name="is_active"/>
+        </createIndex>
+        <createIndex tableName="prompts" indexName="idx_prompts_created_at">
+            <column name="created_at"/>
+        </createIndex>
+        
+        <!-- Индексы для таблицы channels -->
+        <createIndex tableName="channels" indexName="idx_channels_prompt_id">
+            <column name="prompt_id"/>
+        </createIndex>
+        <createIndex tableName="channels" indexName="idx_channels_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="channels" indexName="idx_channels_is_active">
+            <column name="is_active"/>
+        </createIndex>
+        
+        <!-- Индексы для таблицы news -->
+        <createIndex tableName="news" indexName="idx_news_channel_id">
+            <column name="channel_id"/>
+        </createIndex>
+        <createIndex tableName="news" indexName="idx_news_prompt_id">
+            <column name="prompt_id"/>
+        </createIndex>
+        <createIndex tableName="news" indexName="idx_news_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="news" indexName="idx_news_is_analyzed">
+            <column name="is_analyzed"/>
+        </createIndex>
+        <createIndex tableName="news" indexName="idx_news_publication_date">
+            <column name="publication_date"/>
+        </createIndex>
+        <createIndex tableName="news" indexName="idx_news_engagement_score">
+            <column name="engagement_score"/>
+        </createIndex>
+        
+        <!-- Индексы для таблицы analysis_results -->
+        <createIndex tableName="analysis_results" indexName="idx_analysis_prompt_id">
+            <column name="prompt_id"/>
+        </createIndex>
+        <createIndex tableName="analysis_results" indexName="idx_analysis_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="analysis_results" indexName="idx_analysis_cache_key">
+            <column name="cache_key"/>
+        </createIndex>
+        <createIndex tableName="analysis_results" indexName="idx_analysis_created_at">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

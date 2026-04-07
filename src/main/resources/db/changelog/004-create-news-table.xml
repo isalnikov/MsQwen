@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="004" author="msqwen">
+        <comment>Создание таблицы новостей (news)</comment>
+        
+        <createTable tableName="news">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="channel_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="prompt_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message_id" type="BIGINT"/>
+            <column name="title" type="VARCHAR(500)"/>
+            <column name="content" type="TEXT"/>
+            <column name="publication_date" type="TIMESTAMP"/>
+            <column name="views_count" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="forwards_count" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reactions_count" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="likes_count" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="engagement_score" type="DECIMAL(5, 2)" defaultValueNumeric="0.0"/>
+            <column name="news_url" type="VARCHAR(500)"/>
+            <column name="is_analyzed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+        
+        <!-- Foreign Key на channel_id с CASCADE DELETE -->
+        <addForeignKeyConstraint
+                baseTableName="news"
+                baseColumnNames="channel_id"
+                constraintName="fk_news_channel_id"
+                referencedTableName="channels"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+        
+        <!-- Foreign Key на prompt_id с CASCADE DELETE -->
+        <addForeignKeyConstraint
+                baseTableName="news"
+                baseColumnNames="prompt_id"
+                constraintName="fk_news_prompt_id"
+                referencedTableName="prompts"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+        
+        <!-- Foreign Key на user_id -->
+        <addForeignKeyConstraint
+                baseTableName="news"
+                baseColumnNames="user_id"
+                constraintName="fk_news_user_id"
+                referencedTableName="users"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+    </changeSet>
+
+</databaseChangeLog>

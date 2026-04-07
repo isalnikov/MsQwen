@@ -1,0 +1,122 @@
+# MsQwen Application Configuration
+# Все параметры могут быть переопределены через переменные окружения
+
+spring:
+  application:
+    name: MsQwen
+  
+  # H2 Database Configuration
+  datasource:
+    url: jdbc:h2:file:./data/msqwen;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+  
+  # H2 Console (для разработки)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # Liquibase Configuration
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+  
+  # Cache Configuration
+  cache:
+    type: simple
+    cache-names: analysis
+    simple:
+      initial-capacity: 50
+      maximum-size: 500
+
+# Server Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# Springdoc OpenAPI (Swagger) Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.isalnikov.msqwen: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/msqwen.log
+    max-size: 10MB
+    max-history: 30
+
+# Telegram Bot Configuration
+telegram:
+  bot:
+    token: ${TELEGRAM_BOT_TOKEN:}
+    username: ${TELEGRAM_BOT_USERNAME:MsQwenBot}
+
+# Qwen CLI Configuration
+qwen:
+  cli:
+    path: ${QWEN_CLI_PATH:qwen}
+    timeout: ${QWEN_CLI_TIMEOUT:300}
+
+# Scheduler Configuration
+scheduler:
+  enabled: ${SCHEDULER_ENABLED:true}
+  parse:
+    enabled: ${SCHEDULER_PARSE_ENABLED:true}
+    cron: ${SCHEDULER_PARSE_CRON:0 */30 * * * *}
+  analyze:
+    enabled: ${SCHEDULER_ANALYZE_ENABLED:true}
+    cron: ${SCHEDULER_ANALYZE_CRON:0 0 * * * *}
+  cleanup:
+    enabled: ${SCHEDULER_CLEANUP_ENABLED:true}
+    cron: ${SCHEDULER_CLEANUP_CRON:0 0 3 * * *}
+  cache:
+    enabled: ${SCHEDULER_CACHE_ENABLED:true}
+    cron: ${SCHEDULER_CACHE_CRON:0 0 4 * * *}
+
+# Cache Configuration
+cache:
+  analysis:
+    ttl: ${CACHE_ANALYSIS_TTL:3600}
+
+# News Cleanup Configuration
+news:
+  cleanup:
+    days: ${NEWS_CLEANUP_DAYS:30}
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!-- Миграция 001: Создание таблицы users -->
+    <include file="db/changelog/001-create-users-table.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Миграция 002: Создание таблицы prompts -->
+    <include file="db/changelog/002-create-prompts-table.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Миграция 003: Создание таблицы channels -->
+    <include file="db/changelog/003-create-channels-table.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Миграция 004: Создание таблицы news -->
+    <include file="db/changelog/004-create-news-table.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Миграция 005: Создание таблицы analysis_results -->
+    <include file="db/changelog/005-create-analysis-results-table.xml" relativeToChangelogFile="true"/>
+    
+    <!-- Миграция 006: Индексы и constraints -->
+    <include file="db/changelog/006-add-indexes.xml" relativeToChangelogFile="true"/>
+
+</databaseChangeLog>
