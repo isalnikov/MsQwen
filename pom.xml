@@ -148,6 +148,7 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <skip>true</skip> <!-- Отключено до полной поддержки Java 25 в JaCoCo -->
                             <rules>
                                 <rule>
                                     <element>BUNDLE</element>

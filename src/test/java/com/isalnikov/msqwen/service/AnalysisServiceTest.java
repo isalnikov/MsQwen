@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -70,8 +71,8 @@ class AnalysisServiceTest {
         testResult.setCacheExpiresAt(LocalDateTime.now().plusHours(1));
         testResult.setCreatedAt(LocalDateTime.now());
 
-        testNewsDTO = new NewsDTO(1L, "Test News", "Content", LocalDateTime.now(),
-                100, 10, 20, 15, null, 0.25, "https://t.me/test/1", false);
+        testNewsDTO = new NewsDTO(1L, 1L, 1L, 1L, 1L, "Test News", "Content", LocalDateTime.now(),
+                100, 10, 20, 15, new BigDecimal("0.25"), "https://t.me/test/1", false, LocalDateTime.now());
     }
 
     @Test
