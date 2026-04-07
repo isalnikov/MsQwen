@@ -31,7 +31,7 @@
 
         <!-- Test properties -->
         <mockito.version>5.15.2</mockito.version>
-        <jacoco.version>0.8.12</jacoco.version>
+        <jacoco.version>0.8.14</jacoco.version>
     </properties>
 
     <dependencies>
@@ -148,7 +148,6 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
-                            <skip>true</skip> <!-- Отключено до полной поддержки Java 25 в JaCoCo -->
                             <rules>
                                 <rule>
                                     <element>BUNDLE</element>

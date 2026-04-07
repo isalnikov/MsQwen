@@ -1,0 +1,3 @@
+# Use subclass mock maker for Java 25 compatibility
+# Byte-buddy doesn't fully support Java 25 class file format yet
+mock-maker-subclass
