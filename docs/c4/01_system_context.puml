@@ -1,0 +1,27 @@
+@startuml MsQwen_System_Context
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context Diagram - MsQwen "Госпожа Qwen"
+
+Person(user, "Пользователь Telegram", "Устанавливает бота, создает промпты, управляет каналами, получает анализ новостей")
+Person(admin, "Администратор", "Управляет системой через CLI и REST API, очищает данные")
+
+System_Boundary(msqwen, "MsQwen System") {
+    System(msqwen_app, "MsQwen Application", "Парсинг новостей из Telegram каналов, анализ через Qwen CLI, хранение в H2, REST API, Telegram бот, CLI интерфейс")
+}
+
+System_Ext(telegram_api, "Telegram API", "Публичные каналы через https://t.me/s/", "Источник новостей")
+System_Ext(qwen_cli, "Qwen Code CLI", "AI агент для анализа новостей", "Установлен локально")
+SystemDb_Ext(h2_db, "H2 Database", "Локальная база данных", "Хранение пользователей, промптов, каналов, новостей, результатов анализа")
+
+Rel(user, msqwen_app, "Взаимодействует через", "Telegram Bot / REST API / CLI")
+Rel(admin, msqwen_app, "Управляет через", "CLI / REST API")
+
+Rel(msqwen_app, telegram_api, "Парсит новости из", "Jsoup HTTP requests к t.me/s/")
+Rel(msqwen_app, qwen_cli, "Анализирует новости через", "ProcessBuilder вызов CLI")
+Rel(msqwen_app, h2_db, "Хранит данные в", "JPA/Hibernate JDBC")
+
+@enduml

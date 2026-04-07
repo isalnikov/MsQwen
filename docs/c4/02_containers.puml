@@ -1,0 +1,43 @@
+@startuml MsQwen_Containers
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram - MsQwen "Госпожа Qwen"
+
+Person(user, "Пользователь Telegram", "")
+Person(admin, "Администратор", "")
+
+System_Boundary(msqwen, "MsQwen System") {
+    
+    Container(spring_boot, "Spring Boot Application", "Java 25+ / Spring Boot 4+", "Основное приложение: бизнес-логика, сервисы, планировщик")
+    
+    Container(telegram_bot, "Telegram Bot", "Java / TelegramLongPollingBot", "Обработка команд бота, inline клавиатуры, уведомления")
+    
+    Container(rest_api, "REST API", "Java / Spring MVC", "HTTP endpoints для CRUD операций, Swagger документация")
+    
+    Container(cli, "CLI Interface", "Java / CommandLineRunner", "Консольный интерфейс для администрирования")
+    
+    ContainerDb(h2, "H2 Database", "H2 / JPA", "users, prompts, channels, news, analysis_results")
+    
+    Container(fs, "Log Files", "File System", "Консольные и файловые логи с ротацией")
+}
+
+System_Ext(telegram_api, "Telegram API (t.me/s/)", "")
+System_Ext(qwen_cli, "Qwen Code CLI", "")
+
+Rel(user, telegram_bot, "Использует", "Telegram Protocol")
+Rel(admin, rest_api, "Управляет через", "HTTP/REST")
+Rel(admin, cli, "Запускает", "Command Line")
+
+Rel(telegram_bot, spring_boot, "Вызывает сервисы", "Java Method Calls")
+Rel(rest_api, spring_boot, "Вызывает сервисы", "Java Method Calls")
+Rel(cli, spring_boot, "Вызывает сервисы", "Java Method Calls")
+
+Rel(spring_boot, telegram_api, "Парсит новости", "Jsoup HTTP")
+Rel(spring_boot, qwen_cli, "Анализирует новости", "ProcessBuilder")
+Rel(spring_boot, h2, "Сохраняет данные", "JDBC/JPA")
+Rel(spring_boot, fs, "Записывает логи", "Logback")
+
+@enduml

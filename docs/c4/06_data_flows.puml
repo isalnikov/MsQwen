@@ -1,0 +1,156 @@
+@startuml MsQwen_Data_Flows
+
+skinparam responseMessageBelowArrow
+skinparam maxMessageSize 200
+
+title Data Flow Diagrams - MsQwen
+
+== Flow 1: Парсинг новостей ==
+
+actor "Scheduler" as sched
+participant "NewsParsingScheduler" as parser
+participant "TelegramParser\n(Jsoup)" as jsoup
+participant "MetadataExtractor" as meta
+participant "EngagementScore\nCalculator" as eng
+participant "NewsDeduplicator" as dedup
+participant "NewsService" as newsSvc
+participant "NewsRepository" as newsRepo
+database "H2 Database" as h2
+actor "Telegram Bot" as bot
+participant "User" as user
+
+sched -> parser : @Scheduled cron\nparseAllActiveChannels()
+parser -> jsoup : parseChannel(channelUrl)
+jsoup -> telegram_api : HTTP GET t.me/s/{channel}
+telegram_api --> jsoup : HTML страница
+jsoup --> parser : List<ParsedNews>
+
+parser -> meta : extractMetadata(news)
+meta --> parser : views, forwards, reactions, likes
+
+parser -> eng : calculateEngagementScore(metrics)
+eng --> parser : engagementScore
+
+parser -> dedup : isDuplicate(messageId, channelId)
+dedup --> parser : true/false
+
+parser -> newsSvc : saveNews(newNews, userId)
+newsSvc -> newsRepo : saveAll(news)
+newsRepo -> h2 : INSERT INTO news
+
+h2 --> newsRepo : saved entities
+newsRepo --> newsSvc : List<News>
+newsSvc --> parser : saved count
+parser -> bot : notifyUser("Парсинг завершен: +X новостей")
+bot --> user : Сообщение в Telegram
+
+== Flow 2: Анализ новостей ==
+
+actor "Scheduler/User" as trigger
+participant "NewsAnalysisScheduler" as sched2
+participant "AnalysisService" as analysisSvc
+participant "NewsService" as newsSvc2
+participant "NewsRepository" as newsRepo2
+participant "QwenService" as qwenSvc
+participant "CacheService" as cacheSvc
+participant "AnalysisResult\nRepository" as analysisRepo
+database "H2 Database" as h2
+participant "BotNotification\nService" as notify
+actor "User" as user2
+
+trigger -> sched2 : @Scheduled или /analyze
+sched2 -> newsSvc2 : getUnanalyzedNews(promptId, userId)
+newsSvc2 -> newsRepo2 : findByIsAnalyzed(false)\norderBy engagementScore DESC
+newsRepo2 --> newsSvc2 : List<News>
+newsSvc2 --> sched2 : новости для анализа
+
+sched2 -> analysisSvc : analyzeNews(promptId, userId, news)
+analysisSvc -> cacheSvc : getCachedAnalysis(cacheKey)
+cacheSvc --> analysisSvc : cache miss → новый анализ
+
+analysisSvc -> qwenSvc : sendToQwen(promptWithContext)
+note right
+    Промпт содержит:
+    - title, content
+    - publicationDate
+    - viewsCount, forwardsCount
+    - reactionsCount, likesCount
+    - engagementScore
+    - newsUrl
+end note
+
+qwenSvc -> qwen_cli : ProcessBuilder\nqwen --prompt="..."
+qwen_cli --> qwenSvc : stdout ответ
+qwenSvc --> analysisSvc : анализированный текст
+
+analysisSvc -> analysisRepo : save(AnalysisResult)
+note left
+    - user_id, prompt_id
+    - news_ids, cache_key
+    - cache_expires_at
+end note
+analysisRepo -> h2 : INSERT analysis_results
+
+analysisSvc -> newsSvc2 : markNewsAsAnalyzed(newsIds, userId)
+newsSvc2 -> newsRepo2 : UPDATE is_analyzed = true
+newsRepo2 -> h2 : UPDATE news
+
+h2 --> notify : анализ завершен
+notify --> user2 : Результат в Telegram
+
+== Flow 3: Очистка старых новостей ==
+
+actor "Scheduler" as cleanupTrigger
+participant "NewsCleanupScheduler" as cleanupSched
+participant "NewsService" as cleanupSvc
+participant "NewsRepository" as cleanupRepo
+database "H2 Database" as h2
+
+cleanupTrigger -> cleanupSched : @Scheduled daily 3am
+cleanupSched -> cleanupSvc : deleteOldNews(cutoffDate)
+cleanupSvc -> cleanupRepo : findByPublicationDateBefore(30 days ago)
+cleanupRepo -> h2 : SELECT news WHERE date < cutoff
+
+h2 --> cleanupRepo : старые новости
+cleanupRepo --> cleanupSvc : List<News>
+
+cleanupSvc -> h2 : DELETE FROM news (CASCADE)
+note right: CASCADE: связи с channel_id, prompt_id, user_id
+
+h2 --> cleanupSvc : deleted count
+cleanupSvc --> cleanupSched : "Удалено X новостей"
+
+== Flow 4: Удаление промпта (CASCADE) ==
+
+actor "User" as delUser
+participant "Telegram Bot" as delBot
+participant "PromptService" as promptSvc
+participant "ChannelService" as channelSvc
+participant "NewsService" as newsSvc3
+participant "AnalysisService" as analysisSvc2
+participant "Repositories" as repos
+database "H2 Database" as h2
+
+delUser -> delBot : /deleteprompt
+delBot -> promptSvc : deletePrompt(promptId, userId)
+promptSvc -> promptSvc : validatePromptOwnership(promptId, userId)
+
+promptSvc -> channelSvc : deleteChannelsByPrompt(promptId)
+channelSvc -> repos : delete channels WHERE prompt_id
+repos -> h2 : DELETE FROM channels (CASCADE → news)
+
+promptSvc -> newsSvc3 : deleteNewsByPrompt(promptId)
+newsSvc3 -> repos : DELETE news WHERE prompt_id
+repos -> h2 : DELETE FROM news
+
+promptSvc -> analysisSvc2 : deleteAnalysisByPrompt(promptId)
+analysisSvc2 -> repos : DELETE analysis WHERE prompt_id
+repos -> h2 : DELETE FROM analysis_results
+
+promptSvc -> repos : deletePrompt(promptId, userId)
+repos -> h2 : DELETE FROM prompts
+
+h2 --> delBot : success
+delBot --> delUser : "Промпт удален\n(каналы, новости, результаты)"
+
+@enduml

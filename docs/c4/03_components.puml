@@ -1,0 +1,112 @@
+@startuml MsQwen_Components
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - MsQwen Spring Boot Application
+
+Component(spring_boot, "Spring Boot Application", "Java 25+ / Spring Boot 4+", "Основное приложение")
+
+Boundary(bot_boundary, "Telegram Bot Components") {
+    Component(bot_config, "BotConfiguration", "Java", "Конфигурация бота, токен, username")
+    Component(bot_handler, "BotCommandHandler", "Java", "Обработка команд бота")
+    Component(bot_state, "BotStateMachine", "Java", "State management для диалогов")
+    Component(bot_keyboard, "BotKeyboardBuilder", "Java", "Inline клавиатуры")
+    Component(bot_notify, "BotNotificationService", "Java", "Уведомления пользователям")
+}
+
+Boundary(api_boundary, "REST API Components") {
+    Component(user_ctrl, "UserController", "Java", "POST /users/register, GET/PUT/DELETE /users/me")
+    Component(prompt_ctrl, "PromptController", "Java", "CRUD /prompts")
+    Component(channel_ctrl, "ChannelController", "Java", "CRUD /channels")
+    Component(news_ctrl, "NewsController", "Java", "GET /news, POST /parse")
+    Component(analysis_ctrl, "AnalysisController", "Java", "POST /analyze, GET /analysis")
+    Component(admin_ctrl, "AdminController", "Java", "DELETE /cleanup, GET /stats")
+    Component(error_handler, "GlobalExceptionHandler", "Java", "@ControllerAdvice обработка ошибок")
+}
+
+Boundary(cli_boundary, "CLI Components") {
+    Component(cli_runner, "CliRunner", "Java", "CommandLineRunner реализация")
+    Component(cli_parser, "ArgumentParser", "Java", "Парсинг аргументов командной строки")
+    Component(cli_handler, "CliCommandHandler", "Java", "Обработка CLI команд")
+}
+
+Boundary(svc_boundary, "Service Layer Components") {
+    Component(user_svc, "UserService", "Java", "Регистрация, CRUD пользователей")
+    Component(prompt_svc, "PromptService", "Java", "CRUD промптов, каскадное удаление")
+    Component(channel_svc, "ChannelService", "Java", "CRUD каналов, каскадное удаление")
+    Component(news_svc, "NewsService", "Java", "CRUD новостей, очистка > 30 дней, метрики")
+    Component(analysis_svc, "AnalysisService", "Java", "Анализ новостей, кеширование")
+    Component(qwen_svc, "QwenService", "Java", "Вызов Qwen CLI через ProcessBuilder")
+    Component(cache_svc, "CacheService", "Java", "Spring Cache с TTL")
+}
+
+Boundary(parser_boundary, "Parser Components") {
+    Component(tg_parser, "TelegramParser", "Java", "Парсинг t.me/s/ через Jsoup")
+    Component(meta_extractor, "MetadataExtractor", "Java", "views, forwards, reactions, likes")
+    Component(engagement_calc, "EngagementScoreCalculator", "Java", "Расчет engagement_score")
+    Component(deduplicator, "NewsDeduplicator", "Java", "Проверка дубликатов по message_id")
+}
+
+Boundary(sched_boundary, "Scheduler Components") {
+    Component(sched_config, "SchedulerConfiguration", "Java", "@EnableScheduling, Virtual Threads")
+    Component(parse_sched, "NewsParsingScheduler", "Java", "@Scheduled парсинг каналов")
+    Component(analyze_sched, "NewsAnalysisScheduler", "Java", "@Scheduled анализ новостей")
+    Component(cleanup_sched, "NewsCleanupScheduler", "Java", "@Scheduled удаление > 30 дней")
+    Component(cache_sched, "CacheCleanupScheduler", "Java", "@Scheduled очистка кеша")
+}
+
+Boundary(repo_boundary, "Data Access Components") {
+    Component(user_repo, "UserRepository", "Spring Data JPA", " findByTelegramId, изоляция по userId")
+    Component(prompt_repo, "PromptRepository", "Spring Data JPA", "findAllByUserId, CASCADE удаление")
+    Component(channel_repo, "ChannelRepository", "Spring Data JPA", "findByPromptIdAndUserId")
+    Component(news_repo, "NewsRepository", "Spring Data JPA", "findByIsAnalyzed, очистка по дате")
+    Component(analysis_repo, "AnalysisResultRepository", "Spring Data JPA", "findByCacheKey, TTL")
+}
+
+Boundary(cfg_boundary, "Configuration Components") {
+    Component(db_config, "DatabaseConfiguration", "Java", "H2 настройка, Liquibase")
+    Component(cache_config, "CacheConfiguration", "Java", "@EnableCaching, TTL, LRU")
+    Component(openapi_config, "OpenApiConfiguration", "Java", "Springdoc OpenAPI")
+    Component(logging_config, "LoggingConfiguration", "Java", "Logback консоль + файл")
+}
+
+Rel(bot_handler, user_svc, "registerUser()")
+Rel(bot_handler, prompt_svc, "createPrompt(), deletePrompt()")
+Rel(bot_handler, channel_svc, "createChannel(), deleteChannel()")
+Rel(bot_handler, news_svc, "getNewsByPrompt()")
+Rel(bot_handler, analysis_svc, "analyzeNews()")
+Rel(bot_notify, user_svc, "getUserByTelegramId()")
+
+Rel(user_ctrl, user_svc, "registerUser(), getUser()")
+Rel(prompt_ctrl, prompt_svc, "CRUD операции")
+Rel(channel_ctrl, channel_svc, "CRUD операции")
+Rel(news_ctrl, news_svc, "getNews(), parse()")
+Rel(analysis_ctrl, analysis_svc, "analyze(), getCached()")
+Rel(admin_ctrl, news_svc, "deleteAllNews()")
+Rel(admin_ctrl, user_svc, "deleteAllUsers()")
+
+Rel(cli_handler, prompt_svc, "CRUD операции")
+Rel(cli_handler, news_svc, "parse(), cleanup()")
+Rel(cli_handler, analysis_svc, "analyze()")
+
+Rel(parse_sched, tg_parser, "parseChannel()")
+Rel(parse_sched, news_svc, "saveNews()")
+Rel(analyze_sched, analysis_svc, "analyzeNews()")
+Rel(analyze_sched, qwen_svc, "sendToQwen()")
+Rel(cleanup_sched, news_svc, "deleteOldNews()")
+
+Rel(tg_parser, meta_extractor, "extractMetadata()")
+Rel(meta_extractor, engagement_calc, "calculateScore()")
+Rel(tg_parser, deduplicator, "isDuplicate()")
+
+Rel(user_svc, user_repo, "JPA операции")
+Rel(prompt_svc, prompt_repo, "JPA операции")
+Rel(channel_svc, channel_repo, "JPA операции")
+Rel(news_svc, news_repo, "JPA операции")
+Rel(analysis_svc, analysis_repo, "JPA операции")
+Rel(analysis_svc, qwen_svc, "sendToQwen()")
+Rel(analysis_svc, cache_svc, "@Cacheable, @CacheEvict")
+
+@enduml

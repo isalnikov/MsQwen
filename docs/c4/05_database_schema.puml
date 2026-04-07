@@ -1,0 +1,140 @@
+@startuml MsQwen_Database_Schema
+
+skinparam linetype ortho
+
+title Database Schema - MsQwen H2 Database
+
+entity users {
+    * id : BIGINT <<PK>> <<AUTO_INCREMENT>>
+    --
+    * telegram_id : BIGINT <<UNIQUE>> <<NOT_NULL>>
+    username : VARCHAR(255)
+    first_name : VARCHAR(255)
+    last_name : VARCHAR(255)
+    is_active : BOOLEAN <<DEFAULT_TRUE>>
+    created_at : TIMESTAMP <<DEFAULT_NOW>>
+    updated_at : TIMESTAMP
+}
+
+entity prompts {
+    * id : BIGINT <<PK>> <<AUTO_INCREMENT>>
+    --
+    * user_id : BIGINT <<FK>> <<NOT_NULL>>
+    * name : VARCHAR(255) <<NOT_NULL>>
+    description : TEXT
+    * prompt_text : TEXT <<NOT_NULL>>
+    is_active : BOOLEAN <<DEFAULT_TRUE>>
+    created_at : TIMESTAMP <<DEFAULT_NOW>>
+    updated_at : TIMESTAMP
+}
+
+entity channels {
+    * id : BIGINT <<PK>> <<AUTO_INCREMENT>>
+    --
+    * prompt_id : BIGINT <<FK>> <<NOT_NULL>>
+    * user_id : BIGINT <<FK>> <<NOT_NULL>>
+    * name : VARCHAR(255) <<NOT_NULL>>
+    * telegram_handle : VARCHAR(255) <<NOT_NULL>>
+    telegram_url : VARCHAR(500)
+    description : TEXT
+    is_active : BOOLEAN <<DEFAULT_TRUE>>
+    created_at : TIMESTAMP <<DEFAULT_NOW>>
+    last_parsed_at : TIMESTAMP
+}
+
+entity news {
+    * id : BIGINT <<PK>> <<AUTO_INCREMENT>>
+    --
+    * channel_id : BIGINT <<FK>> <<NOT_NULL>>
+    * prompt_id : BIGINT <<FK>> <<NOT_NULL>>
+    * user_id : BIGINT <<FK>> <<NOT_NULL>>
+    message_id : BIGINT
+    title : VARCHAR(500)
+    content : TEXT
+    publication_date : TIMESTAMP
+    views_count : INTEGER <<DEFAULT_0>>
+    forwards_count : INTEGER <<DEFAULT_0>>
+    reactions_count : INTEGER <<DEFAULT_0>>
+    likes_count : INTEGER <<DEFAULT_0>>
+    engagement_score : DECIMAL(5,2)
+    news_url : VARCHAR(500)
+    is_analyzed : BOOLEAN <<DEFAULT_FALSE>>
+    created_at : TIMESTAMP <<DEFAULT_NOW>>
+    updated_at : TIMESTAMP
+}
+
+entity analysis_results {
+    * id : BIGINT <<PK>> <<AUTO_INCREMENT>>
+    --
+    * prompt_id : BIGINT <<FK>> <<NOT_NULL>>
+    * user_id : BIGINT <<FK>> <<NOT_NULL>>
+    * analysis_text : TEXT <<NOT_NULL>>
+    news_ids : TEXT
+    cache_key : VARCHAR(255) <<UNIQUE>>
+    cache_expires_at : TIMESTAMP
+    created_at : TIMESTAMP <<DEFAULT_NOW>>
+}
+
+' Foreign Key Relationships
+users ||--o{ prompts : "1:N CASCADE"
+users ||--o{ channels : "1:N CASCADE"
+users ||--o{ news : "1:N CASCADE"
+users ||--o{ analysis_results : "1:N CASCADE"
+
+prompts ||--o{ channels : "1:N CASCADE"
+prompts ||--o{ news : "1:N CASCADE"
+prompts ||--o{ analysis_results : "1:N CASCADE"
+
+channels ||--o{ news : "1:N CASCADE"
+
+' Indexes
+note bottom of users
+    INDEXES:
+    - IDX_users_telegram_id (UNIQUE)
+    - IDX_users_is_active
+end note
+
+note bottom of prompts
+    INDEXES:
+    - IDX_prompts_user_id
+    - IDX_prompts_is_active
+    - IDX_prompts_created_at
+end note
+
+note bottom of channels
+    INDEXES:
+    - IDX_channels_prompt_id
+    - IDX_channels_user_id
+    - IDX_channels_is_active
+end note
+
+note bottom of news
+    INDEXES:
+    - IDX_news_channel_id
+    - IDX_news_prompt_id
+    - IDX_news_user_id
+    - IDX_news_is_analyzed
+    - IDX_news_publication_date
+    - IDX_news_engagement_score
+end note
+
+note bottom of analysis_results
+    INDEXES:
+    - IDX_analysis_prompt_id
+    - IDX_analysis_user_id
+    - IDX_analysis_cache_key (UNIQUE)
+    - IDX_analysis_created_at
+end note
+
+legend right
+    |= CASCADE Правила |
+    | User DELETE → Prompts, Channels, News, AnalysisResults |
+    | Prompt DELETE → Channels, News, AnalysisResults |
+    | Channel DELETE → News |
+    | |
+    |= Изоляция данных |
+    | Все таблицы (кроме users) имеют user_id |
+    | Все запросы фильтруются по user_id |
+endlegend
+
+@enduml

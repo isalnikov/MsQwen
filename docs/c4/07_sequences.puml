@@ -1,0 +1,204 @@
+@startuml MsQwen_Sequences
+
+skinparam responseMessageBelowArrow
+skinparam maxMessageSize 150
+
+title Sequence Diagrams - Key Scenarios
+
+== Scenario 1: User registration + create prompt + add channel ==
+
+actor "User" as user
+participant "Telegram Bot" as bot
+participant "BotCommand\nHandler" as handler
+participant "BotState\nMachine" as state
+participant "UserService" as userSvc
+participant "PromptService" as promptSvc
+participant "ChannelService" as channelSvc
+database "H2" as db
+
+user -> bot : /start
+bot -> handler : handleStart()
+handler -> userSvc : registerUser(telegramId, username)
+userSvc -> db : SELECT WHERE telegram_id = ?
+db --> userSvc : empty or existing
+alt new user
+    userSvc -> db : INSERT INTO users
+end
+userSvc --> handler : User entity
+handler -> bot : "Добро пожаловать!\nМеню: /prompts, /news..."
+bot --> user : Inline keyboard
+
+user -> bot : /addprompt
+bot -> handler : handleAddPrompt())
+handler -> state : setState(WAIT_PROMPT_NAME)
+state --> handler : prompt name?
+handler -> bot : "Введите название\nпромпта:"
+bot --> user : text input
+
+user -> bot : "Новости про политику"
+bot -> handler : handleText(message)
+handler -> state : getState()
+state --> handler : WAIT_PROMPT_NAME
+handler -> state : setState(WAIT_PROMPT_TEXT)
+handler -> bot : "Введите текст промпта:"
+bot --> user : text input
+
+user -> bot : "Проанализируй новости...\n(полный текст)"
+bot -> handler : handleText(message)
+handler -> state : getState()
+state --> handler : WAIT_PROMPT_TEXT
+handler -> promptSvc : createPrompt(userId, name, text)
+promptSvc -> db : INSERT INTO prompts
+db --> promptSvc : Prompt entity
+promptSvc --> handler : created prompt
+handler -> state : clearState()
+handler -> bot : "Промпт создан!\nДобавить каналы? /addchannel"
+bot --> user : success message
+
+user -> bot : /addchannel
+bot -> handler : handleAddChannel())
+handler -> state : setState(WAIT_CHANNEL_PROMPT)
+handler -> bot : "Выберите промпт:"
+bot --> user : Inline keyboard (prompts list)
+
+user -> bot : [select prompt]
+bot -> handler : handleCallback(promptId)
+handler -> state : setState(WAIT_CHANNEL_HANDLE)
+handler -> bot : "Введите handle канала:"
+bot --> user : text input
+
+user -> bot : "@polit_news"
+bot -> handler : handleText(message)
+handler -> state : getState()
+state --> handler : WAIT_CHANNEL_HANDLE
+handler -> state : setState(WAIT_CHANNEL_DESC)
+handler -> bot : "Введите описание:"
+bot --> user : text input
+
+user -> bot : "Новости про политику"
+bot -> handler : handleText(message)
+handler -> state : setState(WAIT_CHANNEL_URL)
+handler -> channelSvc : createChannel(promptId, userId, handle, url, desc)
+channelSvc -> db : INSERT INTO channels
+db --> channelSvc : Channel entity
+channelSvc --> handler : created channel
+handler -> state : clearState()
+handler -> bot : "Канал добавлен!"
+bot --> user : success
+
+== Scenario 2: Parse news + analyze + get results ==
+
+actor "User" as user2
+participant "Telegram Bot" as bot2
+participant "BotCommand\nHandler" as handler2
+participant "NewsService" as newsSvc2
+participant "TelegramParser" as parser2
+participant "AnalysisService" as analysisSvc2
+participant "QwenService" as qwenSvc2
+participant "BotNotification\nService" as notify2
+database "H2" as db2
+
+user2 -> bot2 : /parse
+bot2 -> handler2 : handleParse())
+handler2 -> newsSvc2 : parseAllChannels(userId)
+newsSvc2 -> parser2 : parseAllActiveChannels()
+parser2 -> db2 : SELECT active channels
+db2 --> parser2 : List<Channel>
+
+loop for each channel
+    parser2 -> telegram : HTTP GET t.me/s/{channel}
+    telegram --> parser2 : HTML
+    parser2 -> parser2 : extract metadata\n(views, forwards, reactions)
+    parser2 -> parser2 : calculate engagement_score
+    parser2 -> parser2 : check duplicates
+end
+
+parser2 --> newsSvc2 : List<ParsedNews>
+newsSvc2 -> db2 : INSERT new news
+db2 --> newsSvc2 : count saved
+newsSvc2 --> handler2 : "Сохранено X новостей"
+handler2 -> bot2 : "Парсинг завершен!\n+X новостей"
+bot2 --> user2 : notification
+
+user2 -> bot2 : /analyze
+bot2 -> handler2 : handleAnalyze())
+handler2 -> analysisSvc2 : analyzeNews(promptId, userId)
+analysisSvc2 -> db2 : SELECT news WHERE is_analyzed=false\nORDER BY engagement_score DESC
+db2 --> analysisSvc2 : List<News>
+
+analysisSvc2 -> qwenSvc2 : sendToQwen(prompt + news metadata)
+note right
+    Metadata includes:
+    - title, content
+    - views, forwards, reactions, likes
+    - engagement_score
+    - publication_date, news_url
+end note
+
+qwenSvc2 -> qwen : ProcessBuilder\nqwen --prompt="..."
+qwen --> qwenSvc2 : analysis text
+qwenSvc2 --> analysisSvc2 : result
+
+analysisSvc2 -> db2 : INSERT analysis_results
+analysisSvc2 -> db2 : UPDATE news SET is_analyzed=true
+db2 --> analysisSvc2 : success
+analysisSvc2 --> handler2 : AnalysisResult
+handler2 -> bot2 : analysis text
+bot2 --> user2 : "Анализ завершен:\n{result}"
+
+user2 -> bot2 : /news
+bot2 -> handler2 : handleNews())
+handler2 -> newsSvc2 : getNewsByPrompt(promptId, userId, limit)
+newsSvc2 -> db2 : SELECT news ORDER BY date DESC
+db2 --> newsSvc2 : List<News>
+newsSvc2 --> handler2 : NewsDTO list
+handler2 -> bot2 : formatted news
+bot2 --> user2 : news with metrics
+
+== Scenario 3: User deletes prompt (CASCADE) ==
+
+actor "User" as user3
+participant "Telegram Bot" as bot3
+participant "BotCommand\nHandler" as handler3
+participant "PromptService" as promptSvc3
+participant "ChannelService" as channelSvc3
+participant "NewsService" as newsSvc3
+participant "AnalysisService" as analysisSvc3
+database "H2" as db3
+
+user3 -> bot3 : /deleteprompt
+bot3 -> handler3 : handleDeletePrompt())
+handler3 -> promptSvc3 : getPrompts(userId)
+promptSvc3 -> db3 : SELECT prompts WHERE user_id = ?
+db3 --> promptSvc3 : List<Prompt>
+promptSvc3 --> handler3 : prompts list
+handler3 -> bot3 : "Выберите промпт:"
+bot3 --> user3 : Inline keyboard
+
+user3 -> bot3 : [select prompt]
+bot3 -> handler3 : handleCallback(promptId)
+handler3 -> bot3 : "Удалить промпт?\n⚠️ Каналы, новости,\nрезультаты будут удалены!"
+bot3 --> user3 : Confirm keyboard [Да/Нет]
+
+user3 -> bot3 : [Да]
+bot3 -> handler3 : handleConfirmDelete(promptId)
+handler3 -> promptSvc3 : deletePrompt(promptId, userId)
+
+promptSvc3 -> promptSvc3 : validateOwnership(promptId, userId)
+promptSvc3 -> channelSvc3 : deleteChannels(promptId)
+channelSvc3 -> db3 : DELETE channels WHERE prompt_id\n(CASCADE → news)
+
+promptSvc3 -> newsSvc3 : deleteNews(promptId)
+newsSvc3 -> db3 : DELETE news WHERE prompt_id
+
+promptSvc3 -> analysisSvc3 : deleteAnalysis(promptId)
+analysisSvc3 -> db3 : DELETE analysis_results WHERE prompt_id
+
+promptSvc3 -> db3 : DELETE prompts WHERE id = ? AND user_id = ?
+db3 --> promptSvc3 : success
+
+promptSvc3 --> handler3 : deleted
+handler3 -> bot3 : "Промпт удален.\nУдалено: X каналов,\nY новостей, Z результатов"
+bot3 --> user3 : confirmation
+
+@enduml

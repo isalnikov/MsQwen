@@ -1,0 +1,178 @@
+@startuml MsQwen_Code_Entities
+
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #333333
+skinparam stereotypeCBackgroundColor #E8E8E8
+
+title Code Diagram - JPA Entity Classes (Level 4)
+
+class User {
+    - Long id
+    - Long telegramId
+    - String username
+    - String firstName
+    - String lastName
+    - Boolean isActive
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + getId(): Long
+    + getTelegramId(): Long
+    + getUsername(): String
+    + getFirstName(): String
+    + getLastName(): String
+    + getIsActive(): Boolean
+    + getCreatedAt(): LocalDateTime
+    + getUpdatedAt(): LocalDateTime
+    + setId(Long): void
+    + setTelegramId(Long): void
+    + setUsername(String): void
+    + setFirstName(String): void
+    + setLastName(String): void
+    + setIsActive(Boolean): void
+    + setCreatedAt(LocalDateTime): void
+    + setUpdatedAt(LocalDateTime): void
+    + equals(Object): boolean
+    + hashCode(): int
+    + toString(): String
+}
+
+class Prompt {
+    - Long id
+    - String name
+    - String description
+    - String promptText
+    - Boolean isActive
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + getId(): Long
+    + getName(): String
+    + getDescription(): String
+    + getPromptText(): String
+    + getIsActive(): Boolean
+    + getCreatedAt(): LocalDateTime
+    + getUpdatedAt(): LocalDateTime
+    + getChannels(): List<Channel>
+    + getNews(): List<News>
+    + getAnalysisResults(): List<AnalysisResult>
+}
+
+class Channel {
+    - Long id
+    - String name
+    - String telegramHandle
+    - String telegramUrl
+    - String description
+    - Boolean isActive
+    - LocalDateTime createdAt
+    - LocalDateTime lastParsedAt
+    + getId(): Long
+    + getName(): String
+    + getTelegramHandle(): String
+    + getTelegramUrl(): String
+    + getDescription(): String
+    + getIsActive(): Boolean
+    + getCreatedAt(): LocalDateTime
+    + getLastParsedAt(): LocalDateTime
+    + getNews(): List<News>
+}
+
+class News {
+    - Long id
+    - Long messageId
+    - String title
+    - String content
+    - LocalDateTime publicationDate
+    - Integer viewsCount
+    - Integer forwardsCount
+    - Integer reactionsCount
+    - Integer likesCount
+    - Double engagementScore
+    - String newsUrl
+    - Boolean isAnalyzed
+    - LocalDateTime createdAt
+    - LocalDateTime updatedAt
+    + getId(): Long
+    + getMessageId(): Long
+    + getTitle(): String
+    + getContent(): String
+    + getPublicationDate(): LocalDateTime
+    + getViewsCount(): Integer
+    + getForwardsCount(): Integer
+    + getReactionsCount(): Integer
+    + getLikesCount(): Integer
+    + getEngagementScore(): Double
+    + getNewsUrl(): String
+    + getIsAnalyzed(): Boolean
+    + getCreatedAt(): LocalDateTime
+    + getUpdatedAt(): LocalDateTime
+}
+
+class AnalysisResult {
+    - Long id
+    - String analysisText
+    - String newsIds
+    - LocalDateTime createdAt
+    - String cacheKey
+    - LocalDateTime cacheExpiresAt
+    + getId(): Long
+    + getAnalysisText(): String
+    + getNewsIds(): String
+    + getCreatedAt(): LocalDateTime
+    + getCacheKey(): String
+    + getCacheExpiresAt(): LocalDateTime
+    + setAnalysisText(String): void
+    + setNewsIds(String): void
+    + setCacheKey(String): void
+    + setCacheExpiresAt(LocalDateTime): void
+}
+
+' Relationships
+User "1" -- "0..*" Prompt : user.prompts >
+note right of User "1" -- "0..*" Prompt
+    @OneToMany(mappedBy = "user", 
+    cascade = ALL, orphanRemoval = true)
+end note
+
+Prompt "1" -- "0..*" Channel : prompt.channels >
+note right of Prompt "1" -- "0..*" Channel
+    @OneToMany(mappedBy = "prompt",
+    cascade = ALL, orphanRemoval = true)
+end note
+
+Prompt "1" -- "0..*" News : prompt.news >
+note left of Prompt "1" -- "0..*" News
+    @OneToMany(mappedBy = "prompt",
+    cascade = ALL, orphanRemoval = true)
+end note
+
+Prompt "1" -- "0..*" AnalysisResult : prompt.analysisResults >
+note right of Prompt "1" -- "0..*" AnalysisResult
+    @OneToMany(mappedBy = "prompt",
+    cascade = ALL, orphanRemoval = true)
+end note
+
+Channel "1" -- "0..*" News : channel.news >
+note right of Channel "1" -- "0..*" News
+    @OneToMany(mappedBy = "channel",
+    cascade = ALL, orphanRemoval = true)
+end note
+
+' Foreign Keys
+Channel --> User : ManyToOne (user_id)
+News --> Channel : ManyToOne (channel_id)
+News --> Prompt : ManyToOne (prompt_id)
+News --> User : ManyToOne (user_id)
+AnalysisResult --> Prompt : ManyToOne (prompt_id)
+AnalysisResult --> User : ManyToOne (user_id)
+
+legend right
+    |= Отношение |= CASCADE правило |
+    | User → Prompts | ON DELETE CASCADE |
+    | Prompt → Channels | ON DELETE CASCADE |
+    | Prompt → News | ON DELETE CASCADE |
+    | Prompt → AnalysisResults | ON DELETE CASCADE |
+    | Channel → News | ON DELETE CASCADE |
+    | Все таблицы | Изоляция по user_id |
+endlegend
+
+@enduml
