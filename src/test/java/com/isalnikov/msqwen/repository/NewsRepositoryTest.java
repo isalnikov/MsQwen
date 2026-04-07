@@ -27,6 +27,8 @@ import org.springframework.data.domain.Sort;
  * @version 1.0
  */
 @SpringBootTest
+@org.springframework.test.context.ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 @DisplayName("Тесты NewsRepository")
 class NewsRepositoryTest {
 

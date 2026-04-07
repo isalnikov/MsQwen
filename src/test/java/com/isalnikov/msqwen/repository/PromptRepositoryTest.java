@@ -22,6 +22,8 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @version 1.0
  */
 @SpringBootTest
+@org.springframework.test.context.ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 @DisplayName("Тесты PromptRepository")
 class PromptRepositoryTest {
 

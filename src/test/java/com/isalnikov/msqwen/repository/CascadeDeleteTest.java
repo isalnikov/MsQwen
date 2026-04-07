@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @version 1.0
  */
 @SpringBootTest
+@org.springframework.test.context.ActiveProfiles("test")
+@org.springframework.transaction.annotation.Transactional
 class CascadeDeleteTest {
 
     @Autowired

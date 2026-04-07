@@ -1,35 +1,27 @@
 package com.isalnikov.msqwen.config;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.SchedulingConfigurer;
-import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 
 /**
  * Конфигурация планировщика задач с использованием Virtual Threads.
  *
  * <p>Настраивает TaskScheduler для использования Virtual Threads (Java 25+)
- * для конкурентного выполнения запланированных задач. Это позволяет
- * эффективно выполнять IO-bound задачи (парсинг, HTTP запросы) без
- * блокировки потоков.</p>
- *
- * <p>Virtual Threads обеспечивают:</p>
- * <ul>
- *   <li>Легковесность - миллионы виртуальных потоков в одном JVM</li>
- *   <li>Эффективность при IO операциях (HTTP запросы к Telegram)</li>
- *   <li>Простоту кода - не нужна async/reactive модель</li>
- * </ul>
+ * для конкурентного выполнения запланированных задач.</p>
  *
  * @author isalnikov
  * @version 1.0
  */
 @Configuration
-public class SchedulerConfig implements SchedulingConfigurer {
+@ConditionalOnProperty(name = "scheduler.enabled", havingValue = "true", matchIfMissing = true)
+public class SchedulerConfig {
 
     /**
      * Логгер для записи событий конфигурации.
@@ -37,31 +29,19 @@ public class SchedulerConfig implements SchedulingConfigurer {
     private static final Logger logger = LoggerFactory.getLogger(SchedulerConfig.class);
 
     /**
-     * Настраивает TaskScheduler на использование Virtual Threads.
+     * Создаёт TaskScheduler на базе Virtual Threads.
      *
-     * @param taskRegistrar регистратор задач
-     */
-    @Override
-    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        logger.info("Настройка планировщика с Virtual Threads (Java 25+)");
-
-        taskRegistrar.setScheduler(scheduledTaskExecutor());
-    }
-
-    /**
-     * Создаёт Executor на базе Virtual Threads.
+     * <p>Использует Executors.newSingleThreadScheduledExecutor() с Virtual Threads
+     * для выполнения запланированных задач.</p>
      *
-     * <p>Использует Executors.newVirtualThreadPerTaskExecutor() который создаёт
-     * новый виртуальный поток для каждой задачи. Это идеально подходит
-     * для scheduled задач которые выполняют IO операции (парсинг каналов,
-     * HTTP запросы к Qwen CLI).</p>
-     *
-     * @return Executor с Virtual Threads
+     * @return TaskScheduler с Virtual Threads
      */
     @Bean
-    public Executor scheduledTaskExecutor() {
-        Executor executor = Executors.newVirtualThreadPerTaskExecutor();
-        logger.info("Создан TaskScheduler с Virtual Threads");
-        return executor;
+    public TaskScheduler taskScheduler() {
+        logger.info("Создание TaskScheduler с Virtual Threads (Java 25+)");
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
+                Thread.ofVirtual().factory()
+        );
+        return new ConcurrentTaskScheduler(scheduler);
     }
 }

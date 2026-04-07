@@ -1,0 +1,50 @@
+# Test Profile Configuration
+# Overrides for integration tests
+
+spring:
+  # H2 In-Memory Database for tests
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # JPA - create tables for tests
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Disable Liquibase for tests (use ddl-auto instead)
+  liquibase:
+    enabled: false
+
+  # Disable H2 Console for tests
+  h2:
+    console:
+      enabled: false
+
+  # Disable caching for tests
+  cache:
+    type: none
+
+# Disable scheduler for tests
+scheduler:
+  enabled: false
+
+# Disable rate limiter for tests
+rate-limit:
+  enabled: false
+
+# Disable CLI for tests
+cli:
+  enabled: false
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.isalnikov.msqwen: DEBUG
