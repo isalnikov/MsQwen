@@ -91,4 +91,12 @@ public interface ChannelRepository extends JpaRepository<Channel, Long> {
      * @return список каналов пользователя
      */
     List<Channel> findAllByUserId(Long userId);
+
+    /**
+     * Находит все активные каналы пользователя (для парсинга по расписанию).
+     *
+     * @param userId идентификатор пользователя
+     * @return список активных каналов
+     */
+    List<Channel> findAllByUserIdAndIsActive(Long userId, Boolean isActive);
 }

@@ -1,21 +1,18 @@
-# MsQwen Application Configuration
-# Все параметры могут быть переопределены через переменные окружения
-
-# CLI Configuration
-cli:
-  enabled: ${CLI_ENABLED:true}
+# MsQwen Application Configuration - Docker Profile
+# Этот профиль используется при запуске в Docker контейнере
+# SPRING_PROFILES_ACTIVE=docker
 
 spring:
   application:
     name: MsQwen
 
-  # H2 Database Configuration
+  # H2 Database Configuration - Docker (файл в volume)
   datasource:
-    url: jdbc:h2:file:./data/msqwen;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:file:/app/data/msqwen;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
-  
+    password:
+
   # JPA Configuration
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
@@ -26,18 +23,17 @@ spring:
       hibernate:
         format_sql: true
         use_sql_comments: true
-  
-  # H2 Console (для разработки)
+
+  # H2 Console (отключён в production)
   h2:
     console:
-      enabled: true
-      path: /h2-console
-  
+      enabled: false
+
   # Liquibase Configuration
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
     enabled: true
-  
+
   # Cache Configuration
   cache:
     type: simple
@@ -46,22 +42,16 @@ spring:
       initial-capacity: 50
       maximum-size: 500
 
-# CORS Configuration
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
-  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
-  allowed-headers: ${CORS_ALLOWED_HEADERS:*}
-
-# Rate Limiting Configuration
-rate-limit:
-  enabled: ${RATE_LIMIT_ENABLED:true}
-  requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:60}
-
 # Server Configuration
 server:
   port: 8080
   servlet:
     context-path: /
+  # Compression для оптимизации трафика
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
 
 # Springdoc OpenAPI (Swagger) Configuration
 springdoc:
@@ -71,22 +61,22 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha
+    # В production можно отключить
+    enabled: true
 
-# Logging Configuration
+# Logging Configuration - Docker (консоль + файл)
 logging:
   level:
     root: INFO
-    com.isalnikov.msqwen: DEBUG
-    org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.isalnikov.msqwen: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/msqwen.log
-    max-size: 10MB
-    max-history: 30
+    name: /app/logs/msqwen.log
+  # Ротация логов через logback-spring.xml
 
 # Telegram Bot Configuration
 telegram:
@@ -125,6 +115,21 @@ cache:
 news:
   cleanup:
     days: ${NEWS_CLEANUP_DAYS:30}
+
+# CORS Configuration
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+  allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+
+# Rate Limiting Configuration
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:60}
+
+# CLI Configuration
+cli:
+  enabled: ${CLI_ENABLED:true}
 
 # Actuator Configuration
 management:

@@ -223,8 +223,73 @@ public class NewsService {
                 .add(BigDecimal.valueOf(forwardsCount).multiply(BigDecimal.valueOf(0.3)))
                 .add(BigDecimal.valueOf(reactionsCount).multiply(BigDecimal.valueOf(0.6)))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        
+
         // Нормализация 0.0 - 1.0
         return score.min(BigDecimal.ONE).max(BigDecimal.ZERO);
+    }
+
+    /**
+     * Возвращает новость по ID с проверкой прав (для бота).
+     *
+     * @param newsId идентификатор новости
+     * @param userId идентификатор пользователя
+     * @return DTO новости
+     */
+    public NewsDTO getNews(Long newsId, Long userId) {
+        return getNewsByIdAndUser(newsId, userId);
+    }
+
+    /**
+     * Возвращает количество новостей пользователя.
+     *
+     * @param userId идентификатор пользователя
+     * @return количество новостей
+     */
+    public long getNewsCount(Long userId) {
+        return newsRepository.countByUserId(userId);
+    }
+
+    /**
+     * Возвращает количество проанализированных новостей пользователя.
+     *
+     * @param userId идентификатор пользователя
+     * @return количество проанализированных новостей
+     */
+    public long getAnalyzedNewsCount(Long userId) {
+        return newsRepository.countByUserIdAndIsAnalyzed(userId, true);
+    }
+
+    /**
+     * Удаляет все новости промпта (для контроллера).
+     *
+     * @param promptId идентификатор промпта
+     * @param userId идентификатор пользователя
+     */
+    @Transactional
+    public void deleteNewsByPrompt(Long promptId, Long userId) {
+        deleteAllNewsByPrompt(promptId, userId);
+    }
+
+    /**
+     * Возвращает новости промпта без пагинации (для бота).
+     *
+     * @param promptId идентификатор промпта
+     * @param userId идентификатор пользователя
+     * @return список DTO новостей
+     */
+    public List<NewsDTO> getNewsByPrompt(Long promptId, Long userId) {
+        logger.debug("Получение новостей промпта (без пагинации): promptId={}, userId={}", promptId, userId);
+
+        if (!promptRepository.existsByIdAndUserId(promptId, userId)) {
+            if (promptRepository.existsById(promptId)) {
+                throw new AccessDeniedException("Доступ к промпту запрещён");
+            }
+            throw new ResourceNotFoundException("Промпт не найден");
+        }
+
+        return newsRepository.findAllByPromptIdAndUserIdAndIsAnalyzedOrderByPublicationDateDesc(promptId, userId, false)
+                .stream()
+                .map(NewsDTO::new)
+                .collect(Collectors.toList());
     }
 }

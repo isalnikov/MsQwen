@@ -250,4 +250,100 @@ public class ChannelService {
     public long countByPrompt(Long promptId, Long userId) {
         return channelRepository.countByPromptIdAndUserId(promptId, userId);
     }
+
+    /**
+     * Возвращает все каналы пользователя (для статистики и бота).
+     *
+     * @param userId идентификатор пользователя
+     * @return список DTO всех каналов
+     */
+    public List<ChannelDTO> getAllUserChannels(Long userId) {
+        logger.debug("Получение всех каналов пользователя: userId={}", userId);
+
+        return channelRepository.findAllByUserId(userId)
+                .stream()
+                .map(ChannelDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Возвращает все каналы промпта (для контроллеров).
+     *
+     * @param promptId идентификатор промпта
+     * @param userId идентификатор пользователя
+     * @return список DTO каналов
+     */
+    public List<ChannelDTO> getChannelsByPrompt(Long promptId, Long userId) {
+        logger.debug("Получение каналов промпта: promptId={}, userId={}", promptId, userId);
+
+        if (!promptRepository.existsByIdAndUserId(promptId, userId)) {
+            if (promptRepository.existsById(promptId)) {
+                throw new AccessDeniedException("Доступ к промпту запрещён");
+            }
+            throw new ResourceNotFoundException("Промпт не найден");
+        }
+
+        return channelRepository.findAllByPromptIdAndUserId(promptId, userId)
+                .stream()
+                .map(ChannelDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Возвращает канал по ID с проверкой прав.
+     *
+     * @param channelId идентификатор канала
+     * @param userId идентификатор пользователя
+     * @return DTO канала
+     */
+    public ChannelDTO getChannel(Long channelId, Long userId) {
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> {
+                    logger.warn("Канал не найден: channelId={}", channelId);
+                    return new ResourceNotFoundException("Канал не найден");
+                });
+
+        if (!channel.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Доступ к каналу запрещён");
+        }
+
+        return new ChannelDTO(channel);
+    }
+
+    /**
+     * Обновляет канал с проверкой прав.
+     *
+     * @param channelId идентификатор канала
+     * @param userId идентификатор пользователя
+     * @param name новое название
+     * @param telegramHandle новый handle
+     * @param telegramUrl новый URL
+     * @param description новое описание
+     * @return DTO обновлённого канала
+     */
+    @Transactional
+    public ChannelDTO updateChannel(Long channelId, Long userId, String name,
+                                    String telegramHandle, String telegramUrl, String description) {
+        logger.info("Обновление канала: channelId={}, userId={}", channelId, userId);
+
+        Channel channel = channelRepository.findById(channelId)
+                .orElseThrow(() -> {
+                    logger.warn("Канал не найден для обновления: channelId={}", channelId);
+                    return new ResourceNotFoundException("Канал не найден");
+                });
+
+        if (!channel.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Доступ к каналу запрещён");
+        }
+
+        channel.setName(name);
+        channel.setTelegramHandle(telegramHandle);
+        channel.setTelegramUrl(telegramUrl);
+        channel.setDescription(description);
+
+        Channel updatedChannel = channelRepository.save(channel);
+        logger.info("Канал успешно обновлён: id={}", updatedChannel.getId());
+
+        return new ChannelDTO(updatedChannel);
+    }
 }

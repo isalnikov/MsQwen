@@ -115,6 +115,15 @@ public interface NewsRepository extends JpaRepository<News, Long> {
     Page<News> findAllByUserIdOrderByPublicationDateDesc(Long userId, Pageable pageable);
 
     /**
+     * Проверяет существует ли новость с указанным messageId в канале.
+     *
+     * @param channelId идентификатор канала
+     * @param messageId идентификатор сообщения в Telegram
+     * @return true если новость существует
+     */
+    boolean existsByChannelIdAndMessageId(Long channelId, Long messageId);
+
+    /**
      * Удаляет все новости по идентификатору канала и пользователя.
      *
      * @param channelId идентификатор канала

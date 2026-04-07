@@ -202,10 +202,43 @@ public class PromptService {
      */
     public List<PromptDTO> getActivePrompts(Long userId) {
         logger.debug("Получение активных промптов пользователя: userId={}", userId);
-        
+
         return promptRepository.findAllByUserIdAndIsActive(userId, true)
                 .stream()
                 .map(PromptDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Возвращает все промпты пользователя (для бота и контроллеров).
+     *
+     * @param userId идентификатор пользователя
+     * @return список DTO всех промптов
+     */
+    public List<PromptDTO> getUserPrompts(Long userId) {
+        logger.debug("Получение всех промптов пользователя: userId={}", userId);
+
+        return promptRepository.findAllByUserId(userId)
+                .stream()
+                .map(PromptDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Возвращает промпт по ID с проверкой прав.
+     *
+     * @param promptId идентификатор промпта
+     * @param userId идентификатор пользователя
+     * @return DTO промпта
+     */
+    public PromptDTO getPrompt(Long promptId, Long userId) {
+        Prompt prompt = promptRepository.findByIdAndUserId(promptId, userId)
+                .orElseThrow(() -> {
+                    if (promptRepository.existsById(promptId)) {
+                        return new AccessDeniedException("Доступ к промпту запрещён");
+                    }
+                    return new ResourceNotFoundException("Промпт не найден");
+                });
+        return new PromptDTO(prompt);
     }
 }
