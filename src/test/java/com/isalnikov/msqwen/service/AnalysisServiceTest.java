@@ -33,6 +33,7 @@ import static org.mockito.Mockito.*;
  * @version 1.0
  */
 @ExtendWith(MockitoExtension.class)
+
 class AnalysisServiceTest {
 
     @Mock

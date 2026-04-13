@@ -211,7 +211,7 @@ class NewsServiceTest {
         // Большие числа должны нормализоваться до 1.0
         BigDecimal score = newsService.calculateEngagementScore(10000, 1000, 2000);
 
-        assertEquals(new BigDecimal("1.00"), score);
+        assertEquals(BigDecimal.ONE.setScale(2), score);
     }
 
     @Test

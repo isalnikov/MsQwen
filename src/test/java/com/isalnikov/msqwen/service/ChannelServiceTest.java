@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
  * @version 1.0
  */
 @ExtendWith(MockitoExtension.class)
+
 class ChannelServiceTest {
 
     @Mock
